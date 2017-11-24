@@ -1,2 +1,6 @@
 cfg/*
 .DS_Store
+cloud.conf
+*.retry
+
+

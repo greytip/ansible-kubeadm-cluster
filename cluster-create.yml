@@ -8,13 +8,11 @@
   gather_facts: false
 
   roles:
-
     - role: admission_token
       tags:
         - token
 
   tasks:
-
     - debug:
         var: admission_token
       tags:
@@ -24,31 +22,34 @@
 # (1/4) Installing kubelet and kubeadm on your hosts
 
 - hosts: "{{ cluster_name }}"
-
   become: true
 
   roles:
-
     - role: kubeadm_install
       tags:
         - repo
         - master
         - nodes
 
+  tasks:
+    - name: setup sysctl entry for iptables
+      sysctl: 
+         name: net.bridge.bridge-nf-call-iptables
+         value: 1
+         state: present
+         reload: yes
+
 # Implements Step 2 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
 # (2/4) Initializing your master
 
 - hosts: "{{ cluster_name }}_master"
-
   become: true
 
   pre_tasks:
-
     - name: Read token from file
       include_vars: cfg/{{ cluster_name }}/token.yml
 
   tasks:
-
     - set_fact:
         master_ip_address: "{{ master_ip_address_configured }}"
       when: master_ip_address_configured is defined
@@ -63,7 +64,7 @@
       become: false
 
     - name: Initialize master
-      command: kubeadm init --token {{ admission_token }}
+      command: kubeadm init --token {{ admission_token }} 
       args:
         creates: /etc/kubernetes/pki # Not 100% sure that the creates clause is correct
       register: master_init
@@ -83,9 +84,12 @@
 
     # Implements Step 3 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
     # (3/4) Installing a pod network
+    - name: get kube version
+      shell: "kubectl --kubeconfig /etc/kubernetes/admin.conf version | base64 | tr -d '\n'"
+      register: k8s_version
 
     - name: Install pod network
-      command: /usr/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://git.io/weave-kube-1.6
+      command: /usr/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f "https://cloud.weave.works/k8s/net?k8s-version={{ k8s_version.stdout }}"
       register: pod_network
       tags:
         - master
@@ -106,9 +110,7 @@
 # (4/4) Joining your nodes
         
 - hosts: "{{ cluster_name }}_node"
-
   become: true
-
   pre_tasks:
 
     - name: Read token from file
@@ -118,7 +120,6 @@
       include_vars: cfg/{{ cluster_name }}/master_ip_address.yml
 
   tasks:
-
     - debug:
         var: admission_token
       run_once: true
