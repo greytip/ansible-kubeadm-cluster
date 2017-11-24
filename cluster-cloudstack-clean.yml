@@ -1,0 +1,17 @@
+---
+- hosts: "{{ cluster_name }}"
+  become: true
+
+  tasks:
+    - name: update kubeadm.conf
+      lineinfile: 
+        path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+        line: 'Environment="KUBELET_EXTRA_ARGS=--cloud-provider=cloudstack --cloud-config=/etc/kubernetes/cloud.conf"'
+        state: absent        
+
+    - name: restart kubelet
+      systemd:
+        name: kubelet
+        state: restarted
+        daemon_reload: yes
+

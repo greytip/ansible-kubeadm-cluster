@@ -1,0 +1,9 @@
+- local_action:
+    module: cs_instance
+    name: web-vm-1
+    iso: Linux Debian 7 64-bit
+    hypervisor: VMware
+    service_offering: Tiny
+    disk_offering: Performance
+    disk_size: 20
+    ssh_key: john@example.com

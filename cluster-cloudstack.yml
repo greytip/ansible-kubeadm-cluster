@@ -1,0 +1,116 @@
+---
+- hosts: "{{ cluster_name }}_master"
+  become: true
+
+  tasks:
+    - name: Copy cloud.conf
+      copy:
+        src: cloud.conf
+        dest: /etc/kubernetes/cloud.conf
+
+    - name: update kube-controller-manager step #1
+      blockinfile: 
+        path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+        insertafter: "- --leader-elect=true"
+        marker: "# cloud provider {mark}"
+        block: | 
+          __anchor line__
+              - --cloud-provider=cloudstack
+              - --cloud-config=/etc/kubernetes/cloud.conf
+        state: present        
+
+    - name: update kube-controller-manager step #2
+      blockinfile: 
+        path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+        marker: "# volumeMounts {mark}"
+        insertafter: "volumeMounts:"
+        block: | 
+          __anchor line__
+              - mountPath: /etc/kubernetes/cloud.conf
+                name: cloud-config
+                readOnly: true 
+        state: present        
+
+    - name: update kube-controller-manager step #3
+      blockinfile: 
+        path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+        marker: "# volumes {mark}"
+        insertafter: "volumes:"
+        block: | 
+          __anchor line__
+            - hostPath:
+                path: /etc/kubernetes/cloud.conf
+                type: FileOrCreate
+              name: cloud-config
+        state: present        
+
+    - name: cleanup kube-controller-manager
+      lineinfile: 
+        path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+        line: __anchor line__
+        state: absent        
+
+    - name: update kube-apiserver #1
+      blockinfile: 
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+        insertafter: "- --authorization-mode=Node,RBAC"
+        marker: "# cloudprovider {mark}"
+        block: | 
+          __anchor line__
+              - --cloud-provider=cloudstack
+              - --cloud-config=/etc/kubernetes/cloud.conf
+        state: present        
+
+    - name: update kube-apiserver #2
+      blockinfile: 
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+        marker: "# volumeMounts {mark}"
+        insertafter: "volumeMounts:"
+        block: | 
+          __anchor line__
+              - mountPath: /etc/kubernetes/cloud.conf
+                name: cloud-config
+                readOnly: true 
+        state: present        
+
+    - name: update kube-apiserver #3
+      blockinfile: 
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+        marker: "# volumes {mark}"
+        insertafter: "volumes:"
+        block: | 
+          __anchor line__
+            - hostPath:
+                path: /etc/kubernetes/cloud.conf
+                type: FileOrCreate
+              name: cloud-config
+        state: present        
+
+    - name: cleanup kube-apiserver
+      lineinfile: 
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+        line: __anchor line__
+        state: absent        
+
+- hosts: "x{{ cluster_name }}"
+  become: true
+
+  tasks:
+    - name: Copy cloud.conf
+      copy:
+        src: cloud.conf
+        dest: /etc/kubernetes/cloud.conf
+
+    - name: update kubeadm.conf
+      lineinfile: 
+        path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+        insertafter: "\\[Service\\]"
+        line: 'Environment="KUBELET_EXTRA_ARGS=--cloud-provider=cloudstack --cloud-config=/etc/kubernetes/cloud.conf"'
+        state: present        
+
+    - name: restart kubelet
+      systemd:
+        name: kubelet
+        state: restarted
+        daemon_reload: yes
+
