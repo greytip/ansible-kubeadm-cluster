@@ -1,0 +1,21 @@
+- hosts: "{{ cluster }}"
+  connection: local
+ 
+  tasks:
+  - name: create VM
+    cs_instance:
+      name: "{{ item }}"
+      template: "{{ template }}"
+      group: "{{ hostvars[item].group }}"
+      service_offering: "{{ hostvars[item].service_offering }}"
+      ssh_key: "{{ ssh_key }}"
+      networks: "{{ networks }}"
+      tags:
+      - key: os
+        value: linux
+      - key: cluster
+        value: "{{ cluster }}"
+      - key: role
+        value: "{{ hostvars[item].role }}"
+      state: started
+    delegate_to: localhost

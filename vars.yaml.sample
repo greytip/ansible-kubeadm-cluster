@@ -1,0 +1,2 @@
+nfsMountPath: /mnt/k8s-pvc
+nfsServerUrl: 192.168.100.18:/VOL1/k8s-pvc

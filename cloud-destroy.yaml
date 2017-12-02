@@ -1,0 +1,9 @@
+- hosts: "{{ cluster }}"
+  connection: local
+
+  tasks: 
+  - name: destroy VM
+    cs_instance:
+      name: "{{ item }}"
+      state: expunged
+    delegate_to: localhost

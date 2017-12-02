@@ -1,0 +1,35 @@
+# Implements Step 1 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
+# (1/4) Installing kubelet and kubeadm on your hosts
+
+- hosts: all
+  become: true
+
+  roles:
+    - role: kubeadm_install
+      tags:
+        - repo
+        - master
+        - nodes
+
+  tasks:
+    - name: setup sysctl entry for iptables
+      sysctl: 
+         name: net.bridge.bridge-nf-call-iptables
+         value: 1
+         state: present
+         reload: yes
+
+    - name: install glusterfs repo
+      apt_repository:
+        repo: 'ppa:gluster/glusterfs-3.12'
+
+    - name: update / upgrade apt
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400 #One day
+
+    - name: install glusterfs-client
+      apt:
+        name: glusterfs-client
+        state: present

@@ -1,0 +1,52 @@
+- hosts: "{{ cluster_name }}"
+  become: true
+
+  roles:
+    - role: kubeadm_install
+      tags:
+        - repo
+        - master
+        - nodes
+
+  tasks:
+    - name: setup sysctl entry for iptables
+      sysctl: 
+         name: net.bridge.bridge-nf-call-iptables
+         value: 1
+         state: present
+         reload: yes
+
+# Implements Step 4 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
+# (4/4) Joining your nodes
+        
+- hosts: "{{ cluster_name }}_node"
+  become: true
+  pre_tasks:
+
+    - name: Read token from file
+      include_vars: cfg/{{ cluster_name }}/token.yml
+      
+    - name: Read master_ip_address from file
+      include_vars: cfg/{{ cluster_name }}/master_ip_address.yml
+
+  tasks:
+    - debug:
+        var: admission_token
+      run_once: true
+
+    - debug:
+        var: master_ip_address
+      run_once: true
+
+    - name: Join nodes to cluster
+      command: kubeadm join --token {{ admission_token }} {{ master_ip_address }}:6443
+      args:
+        creates: /etc/kubernetes/kubelet.conf # Not 100% sure that the creates clause is correct
+      register: node_join
+      ignore_errors: true
+      tags:
+        - nodes
+        - join
+
+    - debug:
+        var: node_join.stdout_lines

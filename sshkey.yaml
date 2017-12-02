@@ -1,0 +1,9 @@
+- hosts: localhost 
+  connection: local
+ 
+  tasks:
+  - name: ensure my ssh public key
+    cs_sshkeypair:
+      name: "{{ ssh_key }}"
+      public_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    delegate_to: localhost

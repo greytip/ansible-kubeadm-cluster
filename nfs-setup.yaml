@@ -1,0 +1,25 @@
+- hosts: "{{ cluster }}_node"
+  become: true
+  
+  vars_files:
+  - vars.yaml
+ 
+  tasks:
+  - name: create mnt path
+    file: 
+      path: "{{ nfsMountPath }}"
+      state: directory
+      mode: 0755
+
+  - name: install nfs-common
+    apt: 
+      name: nfs-common
+      state: present 
+
+  - name: mount the NFS volume 
+    mount:
+       path: "{{ nfsMountPath }}"
+       src: "{{ nfsServerUrl }}" 
+       fstype: nfs
+       state: mounted
+
