@@ -2,5 +2,6 @@ cfg/*
 .DS_Store
 cloud.conf
 *.retry
-
-
+cloud*.conf
+*-inventory.ini
+vars.yaml
