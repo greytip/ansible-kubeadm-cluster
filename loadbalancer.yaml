@@ -1,0 +1,24 @@
+- hosts: localhost
+  
+  vars:
+  - cluster_master: "{{ cluster_name }}_master"
+ 
+  tasks:
+  - name: create the loadbalancer rule
+    local_action:
+      module: cs_loadbalancer_rule
+      name: kube-api-http
+      public_port: 6443
+      private_port: 6443
+      public_ip: "{{ public_ip}}"
+    delegate_to: localhost
+ 
+  - name: create the loadbalancer hosts
+    local_action:
+      name: kube-api-http
+      module: cs_loadbalancer_rule_member
+      vms: "{{ groups[cluster_master] }}"
+      state: present
+    delegate_to: localhost
+ 
+
